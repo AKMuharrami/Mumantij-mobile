@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { StatusBar } from 'expo-status-bar';
 import React, { useState, useEffect, useRef, Component, ErrorInfo, ReactNode } from 'react';
-import { StyleSheet, Platform, View, Text, ActivityIndicator, TouchableOpacity, BackHandler, ScrollView } from 'react-native';
+import { StyleSheet, Platform, View, Text, ActivityIndicator, TouchableOpacity, BackHandler, ScrollView, SafeAreaView } from 'react-native';
 import { WebView } from 'react-native-webview';
 import NetInfo from '@react-native-community/netinfo';
 
@@ -117,7 +117,7 @@ function MainApp() {
   `;
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <WebView 
         ref={webViewRef}
         source={{ uri: appUrl }} 
@@ -136,7 +136,6 @@ function MainApp() {
             const data = JSON.parse(event.nativeEvent.data);
             if (data.type === 'error' || data.type === 'promise_error' || data.type === 'console_error') {
               console.warn("Web JS Error: ", data);
-              alert("Web Error: " + data.message + (data.lineno ? ' at line ' + data.lineno : ''));
             }
           } catch(e) {}
         }}
@@ -149,12 +148,10 @@ function MainApp() {
         onError={(syntheticEvent) => {
           const { nativeEvent } = syntheticEvent;
           console.warn('WebView error: ', nativeEvent);
-          alert(`WebView error: ${nativeEvent.description} (${nativeEvent.code})`);
         }}
         onHttpError={(syntheticEvent) => {
           const { nativeEvent } = syntheticEvent;
           console.warn('WebView HTTP error: ', nativeEvent);
-          alert(`WebView HTTP error: ${nativeEvent.statusCode} for url ${nativeEvent.url}`);
         }}
         startInLoadingState={true}
         renderLoading={() => (
@@ -165,7 +162,7 @@ function MainApp() {
         )}
       />
       <StatusBar style="light" />
-    </View>
+    </SafeAreaView>
   );
 }
 
