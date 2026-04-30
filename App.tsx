@@ -97,7 +97,7 @@ function MainApp() {
           <Text style={styles.retryText}>Retry</Text>
         </TouchableOpacity>
         <StatusBar style="light" />
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -165,7 +165,7 @@ function MainApp() {
         )}
       />
       <StatusBar style="light" />
-    </SafeAreaView>
+    </View>
   );
 }
 
