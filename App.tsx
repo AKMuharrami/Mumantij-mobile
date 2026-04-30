@@ -1,10 +1,56 @@
 import { StatusBar } from 'expo-status-bar';
-import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, SafeAreaView, Platform, View, Text, ActivityIndicator, TouchableOpacity, BackHandler } from 'react-native';
+import React, { useState, useEffect, useRef, Component, ErrorInfo, ReactNode } from 'react';
+import { StyleSheet, SafeAreaView, Platform, View, Text, ActivityIndicator, TouchableOpacity, BackHandler, ScrollView } from 'react-native';
 import { WebView } from 'react-native-webview';
 import NetInfo from '@react-native-community/netinfo';
 
-export default function App() {
+interface ErrorBoundaryProps {
+  children: ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+  errorInfo: ErrorInfo | null;
+}
+
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  state: ErrorBoundaryState = {
+    hasError: false,
+    error: null,
+    errorInfo: null,
+  };
+
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error, errorInfo: null };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    this.setState({ errorInfo });
+    console.error("ErrorBoundary caught an error", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <SafeAreaView style={styles.offlineContainer}>
+          <ScrollView contentContainerStyle={{ padding: 20 }}>
+            <Text style={{ color: 'red', fontSize: 18, fontWeight: 'bold' }}>App Crashed!</Text>
+            <Text style={{ color: 'white', marginTop: 10 }}>{this.state.error?.toString()}</Text>
+            <Text style={{ color: 'gray', marginTop: 10, fontSize: 12 }}>{this.state.errorInfo?.componentStack}</Text>
+          </ScrollView>
+        </SafeAreaView>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function MainApp() {
   const [isConnected, setIsConnected] = useState<boolean | null>(true);
   const [canGoBack, setCanGoBack] = useState(false);
   const webViewRef = useRef<WebView>(null);
@@ -71,15 +117,34 @@ export default function App() {
         pullToRefreshEnabled={true} // Add native pull to refresh
         bounces={true} // Give native bounce effect on scroll
         onNavigationStateChange={(navState) => setCanGoBack(navState.canGoBack)}
+        onError={(syntheticEvent) => {
+          const { nativeEvent } = syntheticEvent;
+          console.warn('WebView error: ', nativeEvent);
+          alert(`WebView error: ${nativeEvent.description} (${nativeEvent.code})`);
+        }}
+        onHttpError={(syntheticEvent) => {
+          const { nativeEvent } = syntheticEvent;
+          console.warn('WebView HTTP error: ', nativeEvent);
+          alert(`WebView HTTP error: ${nativeEvent.statusCode} for url ${nativeEvent.url}`);
+        }}
         startInLoadingState={true}
         renderLoading={() => (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#4F46E5" />
+            <Text style={{color: 'white', marginTop: 10}}>Loading Web App...</Text>
           </View>
         )}
       />
       <StatusBar style="light" />
     </SafeAreaView>
+  );
+}
+
+export default function App() {
+  return (
+    <ErrorBoundary>
+      <MainApp />
+    </ErrorBoundary>
   );
 }
 
