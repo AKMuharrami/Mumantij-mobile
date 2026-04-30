@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { StatusBar } from 'expo-status-bar';
 import React, { useState, useEffect, useRef, Component, ErrorInfo, ReactNode } from 'react';
-import { StyleSheet, SafeAreaView, Platform, View, Text, ActivityIndicator, TouchableOpacity, BackHandler, ScrollView } from 'react-native';
+import { StyleSheet, Platform, View, Text, ActivityIndicator, TouchableOpacity, BackHandler, ScrollView } from 'react-native';
 import { WebView } from 'react-native-webview';
 import NetInfo from '@react-native-community/netinfo';
 
@@ -33,13 +33,13 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   render() {
     if (this.state.hasError) {
       return (
-        <SafeAreaView style={styles.offlineContainer}>
+        <View style={styles.offlineContainer}>
           <ScrollView contentContainerStyle={{ padding: 20 }}>
             <Text style={{ color: 'red', fontSize: 18, fontWeight: 'bold' }}>App Crashed!</Text>
             <Text style={{ color: 'white', marginTop: 10 }}>{this.state.error?.toString()}</Text>
             <Text style={{ color: 'gray', marginTop: 10, fontSize: 12 }}>{this.state.errorInfo?.componentStack}</Text>
           </ScrollView>
-        </SafeAreaView>
+        </View>
       );
     }
     return this.props.children;
@@ -51,7 +51,7 @@ function MainApp() {
   const [canGoBack, setCanGoBack] = useState(false);
   const webViewRef = useRef<WebView>(null);
   
-  const baseAppUrl = 'https://mumantij-ai.com';
+  const baseAppUrl = 'https://www.mumantij-ai.com/';
   // Append a query param so the web app can behave accordingly 
   // (e.g. conditionally hiding payment buttons based on remote config)
   const appUrl = `${baseAppUrl}?platform=native_mobile`;
@@ -87,7 +87,7 @@ function MainApp() {
   // Native Offline Screen
   if (isConnected === false) {
     return (
-      <SafeAreaView style={styles.offlineContainer}>
+      <View style={styles.offlineContainer}>
         <Text style={styles.offlineTitle}>No Internet Connection</Text>
         <Text style={styles.offlineText}>Please check your network settings and try again.</Text>
         <TouchableOpacity 
@@ -101,12 +101,45 @@ function MainApp() {
     );
   }
 
+  const injectedJS = `
+    window.onerror = function(message, source, lineno, colno, error) {
+      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'error', message: message, source: source, lineno: lineno, colno: colno }));
+    };
+    window.addEventListener('unhandledrejection', function(event) {
+      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'promise_error', message: event.reason }));
+    });
+    const originalConsoleError = console.error;
+    console.error = function(...args) {
+      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'console_error', message: args.join(' ') }));
+      originalConsoleError.apply(console, args);
+    };
+    true;
+  `;
+
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <WebView 
         ref={webViewRef}
         source={{ uri: appUrl }} 
         style={styles.webview}
+        javaScriptEnabled={true}
+        domStorageEnabled={true}
+        originWhitelist={['*']}
+        mixedContentMode="always"
+        incognito={false}
+        opaque={false}
+        backgroundColor="#16161a"
+        injectedJavaScriptBeforeContentLoaded={injectedJS}
+        injectedJavaScript={injectedJS}
+        onMessage={(event) => {
+          try {
+            const data = JSON.parse(event.nativeEvent.data);
+            if (data.type === 'error' || data.type === 'promise_error' || data.type === 'console_error') {
+              console.warn("Web JS Error: ", data);
+              alert("Web Error: " + data.message + (data.lineno ? ' at line ' + data.lineno : ''));
+            }
+          } catch(e) {}
+        }}
         allowsInlineMediaPlayback={true}
         mediaPlaybackRequiresUserAction={false}
         allowsBackForwardNavigationGestures={true} // iOS swipe to go back
