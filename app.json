@@ -8,15 +8,20 @@
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#000000"
     },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.mumantij.ai",
+      "buildNumber": "3",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "We need access to your camera to allow you to record videos for translation.",
+        "NSMicrophoneUsageDescription": "We need access to your microphone to capture audio for your videos.",
+        "NSPhotoLibraryUsageDescription": "We need access to your photo library so you can select videos to translate.",
+        "NSPhotoLibraryAddUsageDescription": "We need access to save the translated videos to your photo library."
       }
     },
     "android": {
@@ -25,21 +30,11 @@
         "backgroundColor": "#000000"
       },
       "package": "com.mumantij.ai",
+      "versionCode": 1,
       "edgeToEdgeEnabled": true
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    },
-    "extra": {
-      "eas": {
-        "projectId": "37bf2ef7-6069-43d3-89f8-68420cd87d5a"
-      }
-    },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
-    "updates": {
-      "url": "https://u.expo.dev/37bf2ef7-6069-43d3-89f8-68420cd87d5a"
     }
   }
 }

@@ -157,7 +157,7 @@ function MainApp() {
         renderLoading={() => (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#4F46E5" />
-            <Text style={{color: 'white', marginTop: 10}}>Loading Web App...</Text>
+            <Text style={{color: 'white', marginTop: 10}}>Loading App...</Text>
           </View>
         )}
       />
