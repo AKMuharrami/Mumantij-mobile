@@ -1,9 +1,11 @@
 // @ts-nocheck
 import { StatusBar } from 'expo-status-bar';
 import React, { useState, useEffect, useRef, Component, ErrorInfo, ReactNode } from 'react';
-import { StyleSheet, Platform, View, Text, ActivityIndicator, TouchableOpacity, BackHandler, ScrollView, SafeAreaView } from 'react-native';
+import { StyleSheet, Platform, View, Text, ActivityIndicator, TouchableOpacity, BackHandler, ScrollView, SafeAreaView, Alert } from 'react-native';
 import { WebView } from 'react-native-webview';
 import NetInfo from '@react-native-community/netinfo';
+import * as FileSystem from 'expo-file-system';
+import * as MediaLibrary from 'expo-media-library';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -131,11 +133,39 @@ function MainApp() {
         backgroundColor="#16161a"
         injectedJavaScriptBeforeContentLoaded={injectedJS}
         injectedJavaScript={injectedJS}
-        onMessage={(event) => {
+        onMessage={async (event) => {
           try {
             const data = JSON.parse(event.nativeEvent.data);
             if (data.type === 'error' || data.type === 'promise_error' || data.type === 'console_error') {
               console.warn("Web JS Error: ", data);
+            }
+            if (data.type === 'download') {
+              try {
+                // Request permissions
+                const { status } = await MediaLibrary.requestPermissionsAsync();
+                if (status !== 'granted') {
+                  Alert.alert('Permission needed', 'We need access to your gallery to save videos.');
+                  return;
+                }
+
+                // Show download started alert
+                Alert.alert('Download Started', 'The video is being saved to your gallery.');
+
+                // Download the file
+                const fileUri = `${FileSystem.documentDirectory}${data.filename}`;
+                const downloadResult = await FileSystem.downloadAsync(data.url, fileUri);
+
+                if (downloadResult.status === 200) {
+                  // Save to media library
+                  await MediaLibrary.saveToLibraryAsync(downloadResult.uri);
+                  Alert.alert('Success', 'Video saved to your gallery.');
+                } else {
+                  Alert.alert('Error', 'Failed to download the video.');
+                }
+              } catch (err) {
+                console.error("Download Error: ", err);
+                Alert.alert('Error', 'An error occurred while saving the video.');
+              }
             }
           } catch(e) {}
         }}

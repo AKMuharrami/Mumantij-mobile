@@ -2,7 +2,7 @@
   "expo": {
     "name": "Mumantij AI",
     "slug": "mumantij-ai",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -35,6 +35,11 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "37bf2ef7-6069-43d3-89f8-68420cd87d5a"
+      }
     }
   }
 }
