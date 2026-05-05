@@ -6,6 +6,7 @@ import { WebView } from 'react-native-webview';
 import NetInfo from '@react-native-community/netinfo';
 import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
+import * as Sharing from 'expo-sharing';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -51,6 +52,8 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 function MainApp() {
   const [isConnected, setIsConnected] = useState<boolean | null>(true);
   const [canGoBack, setCanGoBack] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
   const webViewRef = useRef<WebView>(null);
   
   const baseAppUrl = 'https://www.mumantij-ai.com/';
@@ -140,31 +143,45 @@ function MainApp() {
               console.warn("Web JS Error: ", data);
             }
             if (data.type === 'download') {
+              if (isDownloading) return;
               try {
-                // Request permissions
-                const { status } = await MediaLibrary.requestPermissionsAsync();
-                if (status !== 'granted') {
-                  Alert.alert('Permission needed', 'We need access to your gallery to save videos.');
-                  return;
-                }
+                setIsDownloading(true);
+                setDownloadProgress(0);
 
-                // Show download started alert
-                Alert.alert('Download Started', 'The video is being saved to your gallery.');
-
-                // Download the file
                 const fileUri = `${FileSystem.documentDirectory}${data.filename}`;
-                const downloadResult = await FileSystem.downloadAsync(data.url, fileUri);
+                
+                const downloadResumable = FileSystem.createDownloadResumable(
+                  data.url,
+                  fileUri,
+                  {},
+                  (progressData) => {
+                    const progress = progressData.totalBytesWritten / progressData.totalBytesExpectedToWrite;
+                    setDownloadProgress(Math.round(progress * 100));
+                  }
+                );
 
-                if (downloadResult.status === 200) {
-                  // Save to media library
-                  await MediaLibrary.saveToLibraryAsync(downloadResult.uri);
-                  Alert.alert('Success', 'Video saved to your gallery.');
+                const downloadResult = await downloadResumable.downloadAsync();
+                
+                setIsDownloading(false);
+                setDownloadProgress(0);
+
+                if (downloadResult && downloadResult.status === 200) {
+                  if (await Sharing.isAvailableAsync()) {
+                    await Sharing.shareAsync(downloadResult.uri, {
+                      mimeType: 'video/mp4',
+                      dialogTitle: 'حفظ أو مشاركة الفيديو',
+                    });
+                  } else {
+                    Alert.alert('نجاح', 'تم تحميل الفيديو بنجاح.');
+                  }
                 } else {
-                  Alert.alert('Error', 'Failed to download the video.');
+                  Alert.alert('خطأ', 'فشل تحميل الفيديو.');
                 }
               } catch (err) {
+                setIsDownloading(false);
+                setDownloadProgress(0);
                 console.error("Download Error: ", err);
-                Alert.alert('Error', 'An error occurred while saving the video.');
+                Alert.alert('خطأ', 'حدث خطأ أثناء حفظ الفيديو.');
               }
             }
           } catch(e) {}
@@ -191,6 +208,19 @@ function MainApp() {
           </View>
         )}
       />
+      
+      {isDownloading && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#4F46E5" />
+          <Text style={{color: 'white', marginTop: 15, fontSize: 16, fontWeight: 'bold'}}>
+             جاري تحميل الفيديو... {downloadProgress}%
+          </Text>
+          <Text style={{color: '#a1a1aa', marginTop: 8, fontSize: 13}}>
+             يرجى عدم إغلاق التطبيق
+          </Text>
+        </View>
+      )}
+
       <StatusBar style="light" />
     </SafeAreaView>
   );
